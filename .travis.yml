@@ -6,6 +6,14 @@ env:
         - GIT_SHA=$(git rev-parse HEAD)
         - CLOUDSDK_CORE_DISABLE_PROMPTS=1
 before_install:
+    # login on to docker
+    - echo "${DOCKER_PASSWORD}" | docker login --username "$DOCKER_USERNAME" --password-stdin
+    # build the images for testing
+    - docker build -t neerajchimbili/react-test -f ./client/Dockerfile.dev  ./client  
+script:
+    # run the tests on images build for testing 
+    - docker run -e CI=true neerajchimbili/react-test npm run test
+after_success:
     # Decrypting the file service-account.json.enc to service-account.json
     - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
     # downloading google sdk
@@ -18,15 +26,7 @@ before_install:
     # configuring the sdk to use project, zone , k8s cluster
     - gcloud config set project sample-k8s-278112
     - gcloud config set compute/zone us-central1-c
-    - gcloud container clusters get-credentials demo-k8s
-    # login on to docker
-    - echo "${DOCKER_PASSWORD}" | docker login --username "$DOCKER_USERNAME" --password-stdin
-    # build the images for testing
-    - docker build -t neerajchimbili/react-test -f ./client/Dockerfile.dev  ./client  
-script:
-    # run the tests on images build for testing 
-    - docker run -e CI=true neerajchimbili/react-test npm run test
-
+    - gcloud container clusters get-credentials demo-k8s    
 # deploying using custom script
 deploy:
     provider: script
